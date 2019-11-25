@@ -330,19 +330,20 @@ def point_camera(panval, tiltval):
 
 
 def scan_for_cat():
-    # picture_file = "current_view.png"
+    picture_file = "current_view.png"
     #
     # Point the camera in a given direction
     # Remember, pan left is positive, and tilt "up" is negative
-    # point_camera(0,0)
-    # Take a picture
-    take_picture(picture_file)
-    # is_cat(Picture)
-    # if is_cat
-        # grab range
-        # calculate heading
-        # return range, heading
-    pass
+    for azimuth in range(20, -20, -1):
+    	take_picture(picture_file)
+    	# Cat there?
+    	if is_cat(picture_file):
+    		print("Cat!\n")
+    		# get range in inches to target
+    		cat_range = adc_to_range()
+    		# transform azimuth into heading
+    		# return range, heading
+    return(-1,-1)
 
 
 def scan_for_hazard():
@@ -370,7 +371,11 @@ def adc_to_range():
         range in inches
     """
     # 3.3V yields ~6.4mV/in.
+    cur_value, cur_volt = read_adc()
+    return(cur_value)
 
+
+def read_adc():
     # Read the ADC
     curVal = chan.value
     curVolt = chan.voltage
