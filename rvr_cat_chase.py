@@ -53,6 +53,7 @@ from sphero_sdk import DriveFlagsBitmask
 from sphero_sdk import Colors
 from sphero_sdk import RvrLedGroups
 from sphero_sdk import RawMotorModesEnum
+from sphero_sdk import BatteryVoltageStatesEnum as VoltageStates
 
 import board
 import busio
@@ -167,7 +168,10 @@ async def motor_stall_handler(response):
     
 
 def set_lights_blue():
-    """
+    """set_lights_blue() turns the RVR headlights blue.
+    
+    Arguements: none
+    Returns: nothing
     """
     await rvr.led_control.set_multiple_leds_with_enums(
         leds=[
@@ -182,7 +186,10 @@ def set_lights_blue():
 
 
 def set_lights_yellow():
-    """
+    """set_lights_yellow() turns the RVR headlights yellow.
+    
+    Arguements: none
+    Returns: nothing
     """
     await rvr.led_control.set_multiple_leds_with_enums(
         leds=[
@@ -197,7 +204,10 @@ def set_lights_yellow():
 
 
 def set_lights_green():
-    """
+    """set_lights_green() turns the RVR headlights green.
+    
+    Arguements: none
+    Returns: nothing
     """
     await rvr.led_control.set_multiple_leds_with_enums(
         leds=[
@@ -212,7 +222,12 @@ def set_lights_green():
 
 
 def flash_green():
-    """
+    """flash_green() flashes the RVR headlights green, then blue, then green,
+    then back to blue. This is intended to be used as a visual signal that
+    the cat has been detected.
+    
+    Arguements: none
+    Returns: nothing
     """
     set_lights_green()
     await asyncio.sleep(0.5)
@@ -224,7 +239,13 @@ def flash_green():
 
 
 async def stop_rover():
-    """
+    """stop_rover() uses the RVR raw motor interface to completely stop
+    the rover. This can be used as a normal stop, if needed, or to freeze
+    the rover in case some hazard is present, such as a low table or other
+    obstacle that could damage the instruments on the pan/tilt mast.
+    
+    Arguments: none
+    Returns: nothing
     """
     await rvr.rw_motors(
         left_mode=RawMotorModesEnum.forward.value,
@@ -235,7 +256,15 @@ async def stop_rover():
 
 
 async def drive_reverse(input_speed, input_heading, input_time):
-    """
+    """drive_reverse() drives the RVR on a reverse heading at
+    the given speed and for the given time.
+    
+    Arguements:
+    	speed (0 to 255)
+    	heading (0 to 359)
+    	time (seconds)
+    	
+    Returns: nothing
     """
     await rvr.drive_control.reset_heading()
     await rvr.drive_control.drive_backward_seconds(
@@ -247,7 +276,15 @@ async def drive_reverse(input_speed, input_heading, input_time):
 
 
 async def drive_forward(input_speed, input_heading, input_time):
-    """
+    """drive_forward() drives the RVR forward at the given speed,
+    on the given heading, and for the given time.
+    
+    Arguements:
+    	speed (0 to 255)
+    	heading (0 to 359)
+    	time (seconds)
+    	
+    Returns: nothing
     """
     await rvr.drive_control.reset_heading()
     await rvr.drive_control.drive_forward_seconds(
@@ -269,7 +306,13 @@ async def turn_RVR(inDeg, input_speed):
 ##### Camera/AI Control Section #####
 
 def is_cat(imageFile):
-    """
+    """is_cat() uses TensorFlow to determine if the camera sees a cat.
+    
+    Arguements: none
+    
+    Returns:
+    	True if cat is detected
+    	Fals if cat is NOT detected
     """
     # Look for cat
     # If cat, take better picture. 
@@ -277,7 +320,16 @@ def is_cat(imageFile):
 
 
 def take_picture(outFile):
-    """
+    """take_picture() captures a single high-resolution image
+    from the Raspberry Pi camera.
+    
+    Note: this image will need to be downgraded to 299x299 and converted to
+    black and white for TensorFlow.
+    
+    Arguements:
+    	filepath - defines where to store the captured image
+    	
+    Returns: nothing
     """
     # Capture an image
     with PiCamera() as camera:
@@ -322,7 +374,18 @@ def take_picture_stream():
 
 
 def point_camera(panval, tiltval):
-    """
+    """point_camera() uses the pan/tilt mast to point the camera in
+    a particular azimuth and elevation.
+    
+    Note: the mapping from the arguement values to actual direction and
+    elevation angle has not been determined. We will need to do this
+    experimentally
+    
+    Arguements:
+    	pan - direction to pan the camera. Positive is left.
+    	tilt - angle to tilt the camera. Negative is up.
+    	
+    Returns: nothing
     """
     # Point the camera
     pantilthat.pan(panval)     # positive is left from camera's POV
@@ -330,6 +393,18 @@ def point_camera(panval, tiltval):
 
 
 def scan_for_cat():
+	"""scan_for_cat() is the framework for scanning the surroundings to
+	look for cat. It uses is_cat() and point_camera() to move the camera from
+	side to side looking for cat.
+	
+	Arguements: none
+	Returns:
+		If cat detected:
+		  range - distance to cat in inches
+		  heading - the direction in which cat was located
+		If cat not detected:
+			-1,-1
+	"""
     picture_file = "current_view.png"
     #
     # Point the camera in a given direction
@@ -347,7 +422,15 @@ def scan_for_cat():
 
 
 def scan_for_hazard():
-    """
+    """scan_for_hazard() is called just before starting off to chase the cat.
+    It uses point_camera() to tilt from zero to "up" in order to find any
+    overhead obstacles that could damage the instruments on the pan/tilt mast.
+    
+    Arguements: none
+    
+    Returns:
+    	True - hazard detected
+    	False - no hazard detected, free to move
     """
     pass
 
@@ -372,16 +455,40 @@ def adc_to_range():
     """
     # 3.3V yields ~6.4mV/in.
     cur_value, cur_volt = read_adc()
+    cur_value = cur_volt/6.4 # to give us inches?
     return(cur_value)
 
 
 def read_adc():
+	"""
+	read_adc() simply reads the values from the analog-to-digital
+	converter and returns them. The ADS1115 returns both a "value"
+	and the voltage. In our case, voltage will be most useful.
+	
+	Arguements: none
+	
+	Returns:
+		Value
+		Voltage (need to check units)
+	"""
     # Read the ADC
     curVal = chan.value
     curVolt = chan.voltage
     print("Value: %d  Voltage: %0.3f\n" % (curVal, curVolt))
     return (curVal, curVolt)
 
+def shutdown_pi():
+	"""shutdown_pi() executes a clean shutdown to avoid damage to flash memory.
+	
+	Arguements: none
+	
+	Returns: nothing
+	"""
+	command = "/usr/bin/sudo /sbin/shutdown -h now"
+	import subprocess.process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+	output = process.communicate()[0]
+	# NOTREACHED
+	return
 
 ##### Main #####
 
@@ -408,6 +515,7 @@ async def main():
     await asyncio.sleep(2)     # Give RVR time to wake up
     await rvr.reset_yaw()
     await set_lights_blue()      # default running color is blue
+    RVRData.setHeading(0)
 
     print("System and RVR startup complete\n")
 
@@ -421,9 +529,12 @@ async def main():
 
     while True:
         # Check battery state
+        battery_percentage = await rvr.get_battery_percentage()
+        print('Battery percentage: ', battery_percentage)
+        if 20 >= battery_percentage:
             # If low or critical
-                # sleep the rover?
-                # Orderly shutdown to save flash integrity
+            rvr.sleep()
+            shutdown_pi()  # Orderly shutdown to save flash integrity
 
         # Scan for cat with camera
         cat_range, cat_heading = scan_for_cat()
@@ -433,6 +544,7 @@ async def main():
             if not scan_for_hazard:
                 print("Clear to drive.\n")
                 # Translate camera direction to heading
+                RVRdata.setHeading(cat_heading)
                 # Translate range to drive time
                 await drive_forward(NORMAL_SPD, RVRdata.getHeading(), 5)
                 await asyncio.sleep(2)
@@ -476,4 +588,6 @@ if __name__ == '__main__':
     finally:
         if loop.is_running():
             loop.close()
+            
+
 
