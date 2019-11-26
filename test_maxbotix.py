@@ -91,27 +91,27 @@ def adc_to_range():
     """
     # 3.3V yields ~6.4mV/in.
     cur_value, cur_volt = read_adc()
-    cur_range = cur_volt/6.4 # to give us inches?
-    print("Value %d, Voltage %0.6f, range (in) %0.3f\n" % (cur_value, cur_volt, cur_range))
+    cur_range = cur_volt * 6.4 # to give us inches?
+    print("Value %d, Voltage %0.6f, range (in) %0.3f" % (cur_value, cur_volt, cur_range))
     return(cur_range)
 
 
 def read_adc():
-	"""
-	read_adc() simply reads the values from the analog-to-digital
-	converter and returns them. The ADS1115 returns both a "value"
-	and the voltage. In our case, voltage will be most useful.
+    """
+    read_adc() simply reads the values from the analog-to-digital
+    converter and returns them. The ADS1115 returns both a "value"
+    and the voltage. In our case, voltage will be most useful.
 	
-	Arguements: none
+    Arguements: none
 	
-	Returns:
-		Value
-		Voltage (need to check units)
-	"""
+    Returns:
+        Value
+        Voltage (need to check units)
+    """
     # Read the ADC
     curVal = chan.value
     curVolt = chan.voltage
-    print("Value: %d  Voltage: %0.3f\n" % (curVal, curVolt))
+    # print("Value: %d  Voltage: %0.3f" % (curVal, curVolt))
     return (curVal, curVolt)
 
 
