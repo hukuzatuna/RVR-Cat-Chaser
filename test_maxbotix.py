@@ -92,7 +92,7 @@ def adc_to_range():
     # 3.3V yields ~6.4mV/in.
     cur_value, cur_volt = read_adc()
     cur_range = cur_volt * 6.4 # to give us inches?
-    print("Value %d, Voltage %0.6f, range (in) %0.3f" % (cur_value, cur_volt, cur_range))
+    print("%d,%0.6f," % (cur_value, cur_volt))
     return(cur_range)
 
 
