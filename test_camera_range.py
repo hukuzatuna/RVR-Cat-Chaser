@@ -1,7 +1,6 @@
 """Test camera and rangefinder routines for cat chasing RVR
 
 Tests camera panning, image taking, and rangefinding.
-and lasers....
 """
 ##############################################################################
 # Author:      Phil Moyer (phil@moyer.ai)
