@@ -453,10 +453,16 @@ def adc_to_range():
     Returns:
         range in inches
     """
-    # 3.3V yields ~6.4mV/in.
     cur_value, cur_volt = read_adc()
-    cur_value = cur_volt/6.4 # to give us inches?
-    return(cur_value)
+
+    # This formula was extracted from several hundred observations
+    # collected with measured distance.
+
+    # y = 0.03110x - 7.35300
+ 
+    cur_range = (0.03110 * cur_value) - 7.35300
+    
+    return(cur_range)
 
 
 def read_adc():
