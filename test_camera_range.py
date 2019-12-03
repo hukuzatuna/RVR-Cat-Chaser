@@ -115,33 +115,6 @@ def take_picture(outFile):
         camera.capture(outFile, format="png")
 
 
-def take_picture_stream():
-    """Take pictures continuously and stream to memory
-
-    This may be a more useful way to capture pictures
-    to look for cat, but it will depend on how
-    TensorFlow works.
-
-    Note that the RVR will not be controlled while this is
-    running unless we use asynchronous threads.
-    """
-    with picamera.PiCamera() as camera:
-        camera.vflip = True
-        camera.hflip = True
-        camera.contrast = 15
-        camera.sharpness = 35
-        camera.saturation = 20
-        camera.shutter_speed = 0   # auto
-        stream = io.BytesIO()
-        for foo in camera.capture_continuous(stream, format='jpeg'):
-            # Truncate the stream to the current position (in case
-            # prior iterations output a longer image)
-            stream.truncate()
-            stream.seek(0)
-            if process(stream):
-                break
-
-
 def point_camera(panval, tiltval):
     """point_camera() uses the pan/tilt mast to point the camera in
     a particular azimuth and elevation.
@@ -160,48 +133,6 @@ def point_camera(panval, tiltval):
     pantilthat.pan(panval)     # positive is left from camera's POV
     pantilthat.tilt(tiltval)   # negative is "up"
 
-
-def scan_for_cat():
-	"""scan_for_cat() is the framework for scanning the surroundings to
-	look for cat. It uses is_cat() and point_camera() to move the camera from
-	side to side looking for cat.
-	
-	Arguements: none
-	Returns:
-		If cat detected:
-		  range - distance to cat in inches
-		  heading - the direction in which cat was located
-		If cat not detected:
-			-1,-1
-	"""
-    picture_file = "current_view.png"
-    #
-    # Point the camera in a given direction
-    # Remember, pan left is positive, and tilt "up" is negative
-    for azimuth in range(20, -20, -1):
-    	take_picture(picture_file)
-    	# Cat there?
-    	if is_cat(picture_file):
-    		print("Cat!\n")
-    		# get range in inches to target
-    		cat_range = adc_to_range()
-    		# transform azimuth into heading
-    		# return range, heading
-    return(-1,-1)
-
-
-def scan_for_hazard():
-    """scan_for_hazard() is called just before starting off to chase the cat.
-    It uses point_camera() to tilt from zero to "up" in order to find any
-    overhead obstacles that could damage the instruments on the pan/tilt mast.
-    
-    Arguements: none
-    
-    Returns:
-    	True - hazard detected
-    	False - no hazard detected, free to move
-    """
-    pass
 
 
 ##### Rangefinder Section #####
@@ -235,35 +166,21 @@ def adc_to_range():
 
 
 def read_adc():
-	"""
-	read_adc() simply reads the values from the analog-to-digital
-	converter and returns them. The ADS1115 returns both a "value"
-	and the voltage. In our case, voltage will be most useful.
+    """
+    read_adc() simply reads the values from the analog-to-digital
+    converter and returns them. The ADS1115 returns both a "value"
+    and the voltage. In our case, voltage will be most useful.
 	
-	Arguements: none
+    Arguements: none
 	
-	Returns:
-		Value
-		Voltage (need to check units)
-	"""
+    Returns:
+        Value
+        Voltage (need to check units)
+    """
     # Read the ADC
     curVal = chan.value
     curVolt = chan.voltage
-    print("Value: %d  Voltage: %0.3f\n" % (curVal, curVolt))
     return (curVal, curVolt)
-
-def shutdown_pi():
-	"""shutdown_pi() executes a clean shutdown to avoid damage to flash memory.
-	
-	Arguements: none
-	
-	Returns: nothing
-	"""
-	command = "/usr/bin/sudo /sbin/shutdown -h now"
-	import subprocess.process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-	output = process.communicate()[0]
-	# NOTREACHED
-	return
 
 ##### Main #####
 
@@ -276,23 +193,20 @@ def main():
     modification).
     """
 
-    print("System Startup\n")
-
     # module_url = "https://tfhub.dev/google/nnlm-en-dim128/2"
     # embed = hub.KerasLayer(module_url)
     # embeddings = embed(["A long sentence.", "single-word",
     #                       "http://example.com"])
     # print(embeddings.shape)  #(3,128)
 
-    print("Operating loop.\n")
-    
     PicCount = 1  # Keep track of picture count
 
-    for PanAngle in range(-45, 45):
-        PicFile = "cat%0.3d.jpg" % (PicCount)
-        take_picture()        
+    for PanAngle in range(-45, 45, 10):
+        pantilthat.pan(PanAngle)
+        PicFile = "cat%0.3d.png" % (PicCount)
+        take_picture(PicFile)        
         cRange = adc_to_range()
-        print("Picture %s, range $0.3f, azimuth %d" % (PicFile, cRange, PanAngle))
+        print("Picture %s, range %0.3f, azimuth %d" % (PicFile, cRange, PanAngle))
         PicCount += 1
 
 
@@ -305,21 +219,6 @@ def main():
 # set unless called as a program.
 
 if __name__ == '__main__':
-    try:
-        loop.run_until_complete(
-            main()
-        )
-
-    except KeyboardInterrupt:
-        print('\nProgram terminated with keyboard interrupt.')
-
-        loop.run_until_complete(
-            rvr.close()
-        )
-
-    finally:
-        if loop.is_running():
-            loop.close()
-            
+    main()
 
 
