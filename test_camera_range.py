@@ -31,6 +31,7 @@ from time import sleep
 import io
 import time
 from datetime import datetime, timedelta
+import statistics
 
 # Third-party modules
 
@@ -153,14 +154,21 @@ def adc_to_range():
     Returns:
         range in inches
     """
-    cur_value, cur_volt = read_adc()
+
+    valueList = []
+
+    for iCnt in range(1,15):
+        cur_value, cur_volt = read_adc()
+        valueList.append(cur_value)
+
+    value_median = statistics.median(valueList)
 
     # This formula was extracted from several hundred observations
     # collected with measured distance.
 
     # y = 0.03110x - 7.35300
  
-    cur_range = (0.03110 * cur_value) - 7.35300
+    cur_range = (0.03110 * value_median) - 7.35300
     
     return(cur_range)
 
@@ -199,15 +207,35 @@ def main():
     #                       "http://example.com"])
     # print(embeddings.shape)  #(3,128)
 
+    # pan/tilt alignment horizontally is not at 0
+    pantilthat.pan(-12)
+
     PicCount = 1  # Keep track of picture count
 
-    for PanAngle in range(-45, 45, 10):
+    # Interesting. The pan/tilt mast is looking down too far.
+    # Adjust the tilt from 90 to 80.
+    pantilthat.tilt(80)
+
+    # Look right
+    for PanAngle in range(0, -100, -10):
         pantilthat.pan(PanAngle)
         PicFile = "cat%0.3d.png" % (PicCount)
+        sleep(1)  # Let the camera stop shaking
         take_picture(PicFile)        
         cRange = adc_to_range()
         print("Picture %s, range %0.3f, azimuth %d" % (PicFile, cRange, PanAngle))
         PicCount += 1
+    # Look left
+    for PanAngle in range(0, 100, 10):
+        pantilthat.pan(PanAngle)
+        PicFile = "cat%0.3d.png" % (PicCount)
+        sleep(1)  # Let the camera stop shaking
+        take_picture(PicFile)        
+        cRange = adc_to_range()
+        print("Picture %s, range %0.3f, azimuth %d" % (PicFile, cRange, PanAngle))
+        PicCount += 1
+
+    pantilthat.pan(0) # re-center
 
 
 ######################
