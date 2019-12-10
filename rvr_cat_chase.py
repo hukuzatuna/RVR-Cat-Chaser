@@ -124,7 +124,7 @@ class RVRpersistence():
         invertHeading - gives the 180 degree reverse
             heading
     """
-    def __init__():
+    def __init__(self):
         curHeading = 0
 
     def getHeading(self):
@@ -167,61 +167,77 @@ async def motor_stall_handler(response):
     drive_reverse(SLOW_SPD, new_heading, 1)
     
 
-def set_lights_blue():
-    """set_lights_blue() turns the RVR headlights blue.
+#    await rvr.set_all_leds(
+#        led_group=RvrLedGroups.all_lights.value,
+#        led_brightness_values=[color for x in range(10) for color in [0, 255, 0]]
+#    )
+
+
+async def set_lights_blue():
+    """set_lights_blue() turns the RVR lights blue.
     
     Arguements: none
     Returns: nothing
     """
-    await rvr.led_control.set_multiple_leds_with_enums(
-        leds=[
-            RvrLedGroups.headlight_left,
-            RvrLedGroups.headlight_right
-        ],
-        colors=[
-            Colors.Blue,
-            Colors.Blue
-        ]
-    }
+
+    await rvr.set_all_leds(
+        led_group=RvrLedGroups.all_lights.value,
+        led_brightness_values=[color for x in range(10) for color in [0, 0, 255]]
+    )
+
+    # await rvr.led_control.set_multiple_leds_with_enums(
+    #     leds=[
+    #         RvrLedGroups.headlight_left,
+    #         RvrLedGroups.headlight_right
+    #     ],
+    #     colors=[
+    #         Colors.blue,
+    #         Colors.blue
+    #     ]
+    # )
 
 
-def set_lights_yellow():
+async def set_lights_yellow():
     """set_lights_yellow() turns the RVR headlights yellow.
     
     Arguements: none
     Returns: nothing
     """
-    await rvr.led_control.set_multiple_leds_with_enums(
-        leds=[
-            RvrLedGroups.headlight_left,
-            RvrLedGroups.headlight_right
-        ],
-        colors=[
-            Colors.Yellow,
-            Colors.Yellow
-        ]
-    }
+
+    await rvr.set_all_leds(
+        led_group=RvrLedGroups.all_lights.value,
+        led_brightness_values=[color for x in range(10) for color in [255, 255, 0]]
+    )
 
 
-def set_lights_green():
+
+async def set_lights_green():
     """set_lights_green() turns the RVR headlights green.
     
     Arguements: none
     Returns: nothing
     """
-    await rvr.led_control.set_multiple_leds_with_enums(
-        leds=[
-            RvrLedGroups.headlight_left,
-            RvrLedGroups.headlight_right
-        ],
-        colors=[
-            Colors.Green,
-            Colors.Green
-        ]
-    }
+
+    await rvr.set_all_leds(
+        led_group=RvrLedGroups.all_lights.value,
+        led_brightness_values=[color for x in range(10) for color in [0, 255, 0]]
+    )
 
 
-def flash_green():
+async def set_lights_red():
+    """set_lights_red() turns the RVR headlights red.
+    
+    Arguements: none
+    Returns: nothing
+    """
+
+    await rvr.set_all_leds(
+        led_group=RvrLedGroups.all_lights.value,
+        led_brightness_values=[color for x in range(10) for color in [255, 0, 0]]
+    )
+
+
+async def flash_green():
     """flash_green() flashes the RVR headlights green, then blue, then green,
     then back to blue. This is intended to be used as a visual signal that
     the cat has been detected.
@@ -229,13 +245,13 @@ def flash_green():
     Arguements: none
     Returns: nothing
     """
-    set_lights_green()
+    await set_lights_green()
     await asyncio.sleep(0.5)
-    set_lights_blue()
+    await set_lights_blue()
     await asyncio.sleep(0.5)
-    set_lights_green()
+    await set_lights_green()
     await asyncio.sleep(0.5)
-    set_lights_blue()
+    await set_lights_blue()
 
 
 async def stop_rover():
@@ -510,7 +526,7 @@ async def main():
     print("System Startup\n")
 
     # Class instantiation for persistent RVR data
-    RVRdata = RVRpersistence
+    RVRdata = RVRpersistence()
 
     print("RVR Startup\n")
 
@@ -521,7 +537,7 @@ async def main():
     await asyncio.sleep(2)     # Give RVR time to wake up
     await rvr.reset_yaw()
     await set_lights_blue()      # default running color is blue
-    RVRData.setHeading(0)
+    RVRdata.setHeading(0)
 
     print("System and RVR startup complete\n")
 
@@ -555,7 +571,7 @@ async def main():
                 await drive_forward(NORMAL_SPD, RVRdata.getHeading(), 5)
                 await asyncio.sleep(2)
             else:
-                stop_rover()
+                awiat stop_rover()
                 print("Hazard avoidance triggered.\n")
                 new_heading = RVRdata.invertHeading
                 drive_reverse(SLOW_SPD, new_heading, 1)
