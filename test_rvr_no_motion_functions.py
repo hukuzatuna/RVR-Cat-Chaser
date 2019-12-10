@@ -43,8 +43,8 @@ from datetime import datetime, timedelta
 
 import pantilthat       # Pan/Tilt mast controller
 from picamera import PiCamera
-import tensorflow as tf
-import tensorflow_hub as hub
+# import tensorflow as tf
+# import tensorflow_hub as hub
 
 import asyncio
 from sphero_sdk import SpheroRvrAsync
@@ -124,7 +124,7 @@ class RVRpersistence():
         invertHeading - gives the 180 degree reverse
             heading
     """
-    def __init__():
+    def __init__(self):
         curHeading = 0
 
     def getHeading(self):
@@ -167,79 +167,77 @@ async def motor_stall_handler(response):
     drive_reverse(SLOW_SPD, new_heading, 1)
     
 
-def set_lights_blue():
-    """set_lights_blue() turns the RVR headlights blue.
+#    await rvr.set_all_leds(
+#        led_group=RvrLedGroups.all_lights.value,
+#        led_brightness_values=[color for x in range(10) for color in [0, 255, 0]]
+#    )
+
+
+async def set_lights_blue():
+    """set_lights_blue() turns the RVR lights blue.
     
     Arguements: none
     Returns: nothing
     """
-    await rvr.led_control.set_multiple_leds_with_enums(
-        leds=[
-            RvrLedGroups.headlight_left,
-            RvrLedGroups.headlight_right
-        ],
-        colors=[
-            Colors.Blue,
-            Colors.Blue
-        ]
-    }
+
+    await rvr.set_all_leds(
+        led_group=RvrLedGroups.all_lights.value,
+        led_brightness_values=[color for x in range(10) for color in [0, 0, 255]]
+    )
+
+    # await rvr.led_control.set_multiple_leds_with_enums(
+    #     leds=[
+    #         RvrLedGroups.headlight_left,
+    #         RvrLedGroups.headlight_right
+    #     ],
+    #     colors=[
+    #         Colors.blue,
+    #         Colors.blue
+    #     ]
+    # )
 
 
-def set_lights_yellow():
+async def set_lights_yellow():
     """set_lights_yellow() turns the RVR headlights yellow.
     
     Arguements: none
     Returns: nothing
     """
-    await rvr.led_control.set_multiple_leds_with_enums(
-        leds=[
-            RvrLedGroups.headlight_left,
-            RvrLedGroups.headlight_right
-        ],
-        colors=[
-            Colors.Yellow,
-            Colors.Yellow
-        ]
-    }
+
+    await rvr.set_all_leds(
+        led_group=RvrLedGroups.all_lights.value,
+        led_brightness_values=[color for x in range(10) for color in [255, 255, 0]]
+    )
 
 
-def set_lights_green():
+
+async def set_lights_green():
     """set_lights_green() turns the RVR headlights green.
     
     Arguements: none
     Returns: nothing
     """
-    await rvr.led_control.set_multiple_leds_with_enums(
-        leds=[
-            RvrLedGroups.headlight_left,
-            RvrLedGroups.headlight_right
-        ],
-        colors=[
-            Colors.Green,
-            Colors.Green
-        ]
-    }
+
+    await rvr.set_all_leds(
+        led_group=RvrLedGroups.all_lights.value,
+        led_brightness_values=[color for x in range(10) for color in [0, 255, 0]]
+    )
 
 
-def set_lights_red():
+async def set_lights_red():
     """set_lights_red() turns the RVR headlights red.
     
     Arguements: none
     Returns: nothing
     """
-    await rvr.led_control.set_multiple_leds_with_enums(
-        leds=[
-            RvrLedGroups.headlight_left,
-            RvrLedGroups.headlight_right
-        ],
-        colors=[
-            Colors.Red,
-            Colors.Red
-        ]
-    }
+
+    await rvr.set_all_leds(
+        led_group=RvrLedGroups.all_lights.value,
+        led_brightness_values=[color for x in range(10) for color in [255, 0, 0]]
+    )
 
 
-def flash_green():
+async def flash_green():
     """flash_green() flashes the RVR headlights green, then blue, then green,
     then back to blue. This is intended to be used as a visual signal that
     the cat has been detected.
@@ -247,13 +245,13 @@ def flash_green():
     Arguements: none
     Returns: nothing
     """
-    set_lights_green()
+    await set_lights_green()
     await asyncio.sleep(0.5)
-    set_lights_blue()
+    await set_lights_blue()
     await asyncio.sleep(0.5)
-    set_lights_green()
+    await set_lights_green()
     await asyncio.sleep(0.5)
-    set_lights_blue()
+    await set_lights_blue()
 
 
 async def stop_rover():
@@ -270,7 +268,7 @@ async def stop_rover():
         left_speed=0,
         right_mode=RawMotorModesEnum.forward.value,
         right_speed=0
-    }
+    )
 
 
 async def drive_reverse(input_speed, input_heading, input_time):
@@ -278,10 +276,10 @@ async def drive_reverse(input_speed, input_heading, input_time):
     the given speed and for the given time.
     
     Arguements:
-    	speed (0 to 255)
-    	heading (0 to 359)
-    	time (seconds)
-    	
+        speed (0 to 255)
+        heading (0 to 359)
+        time (seconds)
+        
     Returns: nothing
     """
     await rvr.drive_control.reset_heading()
@@ -298,10 +296,10 @@ async def drive_forward(input_speed, input_heading, input_time):
     on the given heading, and for the given time.
     
     Arguements:
-    	speed (0 to 255)
-    	heading (0 to 359)
-    	time (seconds)
-    	
+        speed (0 to 255)
+        heading (0 to 359)
+        time (seconds)
+        
     Returns: nothing
     """
     await rvr.drive_control.reset_heading()
@@ -329,8 +327,8 @@ def is_cat(imageFile):
     Arguements: none
     
     Returns:
-    	True if cat is detected
-    	Fals if cat is NOT detected
+        True if cat is detected
+        Fals if cat is NOT detected
     """
     # Look for cat
     # If cat, take better picture. 
@@ -345,8 +343,8 @@ def take_picture(outFile):
     black and white for TensorFlow.
     
     Arguements:
-    	filepath - defines where to store the captured image
-    	
+        filepath - defines where to store the captured image
+        
     Returns: nothing
     """
     # Capture an image
@@ -400,9 +398,9 @@ def point_camera(panval, tiltval):
     experimentally
     
     Arguements:
-    	pan - direction to pan the camera. Positive is left.
-    	tilt - angle to tilt the camera. Negative is up.
-    	
+        pan - direction to pan the camera. Positive is left.
+        tilt - angle to tilt the camera. Negative is up.
+        
     Returns: nothing
     """
     # Point the camera
@@ -411,31 +409,31 @@ def point_camera(panval, tiltval):
 
 
 def scan_for_cat():
-	"""scan_for_cat() is the framework for scanning the surroundings to
-	look for cat. It uses is_cat() and point_camera() to move the camera from
-	side to side looking for cat.
-	
-	Arguements: none
-	Returns:
-		If cat detected:
-		  range - distance to cat in inches
-		  heading - the direction in which cat was located
-		If cat not detected:
-			-1,-1
-	"""
+    """scan_for_cat() is the framework for scanning the surroundings to
+    look for cat. It uses is_cat() and point_camera() to move the camera from
+    side to side looking for cat.
+    
+    Arguements: none
+    Returns:
+        If cat detected:
+          range - distance to cat in inches
+          heading - the direction in which cat was located
+        If cat not detected:
+            -1,-1
+    """
     picture_file = "current_view.png"
     #
     # Point the camera in a given direction
     # Remember, pan left is positive, and tilt "up" is negative
     for azimuth in range(20, -20, -1):
-    	take_picture(picture_file)
-    	# Cat there?
-    	if is_cat(picture_file):
-    		print("Cat!\n")
-    		# get range in inches to target
-    		cat_range = adc_to_range()
-    		# transform azimuth into heading
-    		# return range, heading
+        take_picture(picture_file)
+        # Cat there?
+        if is_cat(picture_file):
+            print("Cat!\n")
+            # get range in inches to target
+            cat_range = adc_to_range()
+            # transform azimuth into heading
+            # return range, heading
     return(-1,-1)
 
 
@@ -447,8 +445,8 @@ def scan_for_hazard():
     Arguements: none
     
     Returns:
-    	True - hazard detected
-    	False - no hazard detected, free to move
+        True - hazard detected
+        False - no hazard detected, free to move
     """
     pass
 
@@ -484,17 +482,17 @@ def adc_to_range():
 
 
 def read_adc():
-	"""
-	read_adc() simply reads the values from the analog-to-digital
-	converter and returns them. The ADS1115 returns both a "value"
-	and the voltage. In our case, voltage will be most useful.
-	
-	Arguements: none
-	
-	Returns:
-		Value
-		Voltage (need to check units)
-	"""
+    """
+    read_adc() simply reads the values from the analog-to-digital
+    converter and returns them. The ADS1115 returns both a "value"
+    and the voltage. In our case, voltage will be most useful.
+    
+    Arguements: none
+    
+    Returns:
+        Value
+        Voltage (need to check units)
+    """
     # Read the ADC
     curVal = chan.value
     curVolt = chan.voltage
@@ -502,17 +500,18 @@ def read_adc():
     return (curVal, curVolt)
 
 def shutdown_pi():
-	"""shutdown_pi() executes a clean shutdown to avoid damage to flash memory.
-	
-	Arguements: none
-	
-	Returns: nothing
-	"""
-	command = "/usr/bin/sudo /sbin/shutdown -h now"
-	import subprocess.process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-	output = process.communicate()[0]
-	# NOTREACHED
-	return
+    """shutdown_pi() executes a clean shutdown to avoid damage to flash memory.
+    
+    Arguements: none
+    
+    Returns: nothing
+    """
+    command = "/usr/bin/sudo /sbin/shutdown -h now"
+    import subprocess
+    process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+    output = process.communicate()[0]
+    # NOTREACHED
+    return
 
 ##### Main #####
 
@@ -526,7 +525,7 @@ async def main():
     """
 
     # Class instantiation for persistent RVR data
-    RVRdata = RVRpersistence
+    RVRdata = RVRpersistence()
 
     print("RVR Startup\n")
 
@@ -537,7 +536,7 @@ async def main():
     await asyncio.sleep(2)     # Give RVR time to wake up
     await rvr.reset_yaw()
     await set_lights_blue()      # default running color is blue
-    RVRData.setHeading(0)
+    RVRdata.setHeading(0)
 
     print("System and RVR startup complete\n")
 
@@ -554,23 +553,23 @@ async def main():
     print('Battery percentage: ', battery_percentage)
 
     print("Lights Red")
-    set_lights_red()
+    await set_lights_red()
     sleep(10)
 
     print("Lights Yellow")
-    set_lights_yellow()
+    await set_lights_yellow()
     sleep(10)
 
     print("Lights Green")
-    set_lights_green()
+    await set_lights_green()
     sleep(10)
 
     print("Set lights default (blue)")
-    set_lights_blue()
+    await set_lights_blue()
     sleep(10)
 
     # Shut down the rover.
-    rvr.close()
+    await rvr.close()
 
     # Exit from async "run until complete"
     return
