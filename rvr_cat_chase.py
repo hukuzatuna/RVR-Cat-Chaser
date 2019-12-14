@@ -61,6 +61,7 @@ import board
 import busio
 import adafruit_ads1x15.ads1115 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
+from Adafruit_IO import Client, Feed, Data, RequestError
 
 
 # Package/application modules
@@ -83,6 +84,19 @@ MOVE_RVR = False            # Whether the RVR should move or not (for testing)
 ######################
 # Pre-Main Setup
 ######################
+
+##### Adafruit IO init #####
+
+# Get AdafruitIO details from the secrets.py file
+try:
+    from secrets import secrets
+except ImportError:
+    print("AdafruitIO secrets are kept in secrets.py, please add them there!")
+    raise
+
+aio_username= secrets['aio_username']
+aio_key = secrets['aio_key']
+aio = Client(aio_username, aio_key)
 
 ##### RVR init #####
 
@@ -592,7 +606,14 @@ def shutdown_pi():
     
     Returns: nothing
     """
+    try:
+        rvr_alert = aio.feeds('rvr-cat-chase')
+        aio.send_data(rvr_alert.key, 4)
+    except RequestError:
+        print("Cannot establish connection to RVR_cat_chase.")
+
     subprocess.run(["/usr/bin/sudo","/sbin/shutdonw","-h","now"])
+
     # NOTREACHED
     return
 
@@ -709,5 +730,3 @@ if __name__ == '__main__':
         if loop.is_running():
             loop.close()
             
-
-
