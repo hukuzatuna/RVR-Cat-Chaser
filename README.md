@@ -38,6 +38,8 @@ to train the cat to understand the RVR. That's a bit down the road, though.
 - Adafruit Blinka library
 - Adafruit ADS1x15 CircuitPython library
 - Pimaroni pan/tilt library
+- AdafruitIO account (io.adafruit.com) - bridge between RVR and IFTTT
+- IFTTT account (If This Then That) - for notifications to your phone
 
 ## Setup and Usage
 
@@ -63,5 +65,8 @@ Horribly scruffy, but, in general:
 - NOTE: the PowerBoost board will get wickedly hot, so it will help to have it hanging out in the air for cooling
 - mount the Proto-Pi Hat on the Raspberry Pi
 - mount the pan/tilt Hat on the Proto-Pi Hat
+- Add entries for your AdafruitIO Username and Key in ~/secrets.py (it's a Python dict, see "secrets.py"), then add the directory with the secrets.py file to your PYTHONPATH env variable
+- Configure a feed on your AdafruitIO account named "RVR_cat_chase"
+- Configure an action on IFTTT to send you a notification if data shows up on the AdafruitIO feed - this is so the RVR can tell you when the battery is too low to operate, and everything is shutting itself down cleanly
 - "clone this repo, power everything on, run software" (this is obviously glossing over a LOT of detail, which will need to be fleshed out)
 
