@@ -51,6 +51,10 @@ from adafruit_ads1x15.analog_in import AnalogIn
 # Globals
 ######################
 
+tf_width = 299    # Width required by TensorFlow
+tf_height = 299   # Height required by TensorFlow
+tf_bw = True      # Whether TensorFlow wants B&W
+
 
 ######################
 # Pre-Main Setup
@@ -75,21 +79,30 @@ ads.gain = 1
 
 ##### Camera/AI Control Section #####
 
-def is_cat(imageFile):
-    """is_cat() uses TensorFlow to determine if the camera sees a cat.
-    
-    Arguements: none
-    
-    Returns:
-    	True if cat is detected
-    	Fals if cat is NOT detected
-    """
-    # Look for cat
-    # If cat, take better picture. 
-    pass
-
-
 def take_picture(outFile):
+    """take_picture() captures a single black and white frame
+    in the dimensions (pixels) required by the TensorFlow
+    training set.
+    
+    Arguements:
+    	outFile - defines where to store the captured image
+    	
+    Returns: nothing
+    """
+    # Capture an image
+    with PiCamera() as camera:
+        camera.vflip = True
+        camera.hflip = True
+        camera.contrast = 15
+        camera.sharpness = 35
+        camera.saturation = 20
+        camera.shutter_speed = 0   # auto
+        camera.color_effects = (128,128)     # sets the camera to black and white
+        camera.PiResolution(width=tf_width, height=tf_height)
+        camera.capture(outFile, format="jpeg")
+
+
+def take_picture_hd(outFile):
     """take_picture() captures a single high-resolution image
     from the Raspberry Pi camera.
     
@@ -116,6 +129,19 @@ def take_picture(outFile):
         camera.capture(outFile, format="png")
 
 
+def convert_pic_to_tf(inFile, outFile, outWidth, outHeight, black_and_white=True):
+    """convert_pic_to_tf process pic to TensorFlow requirements.
+
+    Arguements:
+        inFile - name and path of input file
+        outFile - name and path of output file
+        outWidth - width of output image (pixels)
+        outHeight - height of output image (pixels)
+        black_and_white - boolean indicating change image to B&W
+    """
+    pass
+
+
 def point_camera(panval, tiltval):
     """point_camera() uses the pan/tilt mast to point the camera in
     a particular azimuth and elevation.
@@ -135,17 +161,15 @@ def point_camera(panval, tiltval):
     pantilthat.tilt(tiltval)   # negative is "up"
 
 
-
 ##### Rangefinder Section #####
 
 # NOTE: this uses the MaxBotix LV-EZ0 ultrasonic rangefinder.
 # Pin 3 -> ADC
 # Pin 6 -> 3.3v
 # Pin 7 -> GND
-
+#
 # It also uses an ADS1115 16-bit I2C ADC with programmable gain.
 # VCC -> 3.3v
-
 
 def adc_to_range():
     """adc_to_range provides range in inches from the
@@ -190,6 +214,18 @@ def read_adc():
     curVolt = chan.voltage
     return (curVal, curVolt)
 
+
+def center_camera():
+    
+    # Interesting. The pan/tilt mast is looking down too far at 90,
+    # and the pan is not centered at zero.
+    #
+    # Fix it.
+
+    pantilthat.tilt(80)
+    pantilthat.pan(-12)
+
+
 ##### Main #####
 
 def main():
@@ -207,8 +243,7 @@ def main():
     #                       "http://example.com"])
     # print(embeddings.shape)  #(3,128)
 
-    # pan/tilt alignment horizontally is not at 0
-    pantilthat.pan(-12)
+    center_camera()
 
     PicCount = 1  # Keep track of picture count
 
@@ -235,7 +270,7 @@ def main():
         print("Picture %s, range %0.3f, azimuth %d" % (PicFile, cRange, PanAngle))
         PicCount += 1
 
-    pantilthat.pan(0) # re-center
+    center_camera()
 
 
 ######################
