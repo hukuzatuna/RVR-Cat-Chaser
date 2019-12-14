@@ -259,7 +259,7 @@ async def stop_rover():
         left_speed=0,
         right_mode=RawMotorModesEnum.forward.value,
         right_speed=0
-    }
+    )
 
 
 async def drive_reverse(input_speed, input_heading, input_time):
@@ -349,7 +349,8 @@ def take_picture(outFile):
         camera.saturation = 20
         camera.shutter_speed = 0   # auto
         camera.color_effects = (128,128)     # sets the camera to black and white
-        camera.PiResolution(width=TF_WIDTH, height=TF_HEIGHT)
+        # camera.PiResolution(width=TF_WIDTH, height=TF_HEIGHT)
+        camera.resolution = (TF_WIDTH, TF_HEIGHT)
         camera.capture(outFile, format="jpeg")
 
 
@@ -465,7 +466,7 @@ def scan_for_cat(loc_pic_num):
         # Cat there?
         if is_cat(picture_file):
             print("Cat!\n")
-            await flash_lights_green()
+            flash_lights_green()
             # Get a good picture of the cat for verification
             hd_pic_file = "actual_cat%0.3d.jpg" % (pic_count)
             take_picture_hd(hd_pic_file)
@@ -484,7 +485,7 @@ def scan_for_cat(loc_pic_num):
         # Cat there?
         if is_cat(picture_file):
             print("Cat!\n")
-            await flash_lights_green()
+            flash_lights_green()
             # Get a good picture of the cat for verification
             hd_pic_file = "actual_cat%0.3d.jpg" % (pic_count)
             take_picture_hd(hd_pic_file)
@@ -569,11 +570,11 @@ def read_adc():
 
 
 def center_camera():
-    "center_camera() surprisingly centers the camera.
+    """center_camera() surprisingly centers the camera.
 
     Arguements: none
     Returns: nothing
-    """"
+    """
 
     # Interesting. The pan/tilt mast is looking down too far at 90,
     # and the pan is not centered at zero.
@@ -644,7 +645,7 @@ async def main():
         # Check battery state
         battery_percentage = await rvr.get_battery_percentage()
         print('Battery percentage: ', battery_percentage)
-        if 5 >= battery_percentage:
+        if 5 >= battery_percentage["percentage"]:
             # If low or critical
             print("##### Critically low RVR battery. Shutting down. #####")
             rvr.sleep()
