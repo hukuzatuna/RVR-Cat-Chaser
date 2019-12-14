@@ -38,6 +38,8 @@ from time import sleep
 import io
 import time
 from datetime import datetime, timedelta
+import statistics
+import subprocess
 
 # Third-party modules
 
@@ -72,6 +74,10 @@ ALERT_RANGE = 10            # Range at which RVR should stop/turn
 SLOW_SPD = 20               # Slow speed (all the speeds need tested)
 NORMAL_SPD = 70             # Normal speed
 HIGH_SPD = 150              # High speed (max is 255)
+TF_WIDTH = 299              # Picture widtth for TensorFlow
+TF_HEIGHT = 299             # Picture height for TensorFlow
+TF_BW = True                # Whether TensorFlow wants B&W (unused ATM)
+MOVE_RVR = False            # Whether the RVR should move or not (for testing)
 
 
 ######################
@@ -164,14 +170,9 @@ async def motor_stall_handler(response):
     # the RVR should end up pointing the same way. If the rover
     # turns around, comment out the following line.
     new_heading = RVRdata.invertHeading
-    drive_reverse(SLOW_SPD, new_heading, 1)
+    if MOVE_RVR:
+        drive_reverse(SLOW_SPD, new_heading, 1)
     
-
-#    await rvr.set_all_leds(
-#        led_group=RvrLedGroups.all_lights.value,
-#        led_brightness_values=[color for x in range(10) for color in [0, 255, 0]]
-#    )
-
 
 async def set_lights_blue():
     """set_lights_blue() turns the RVR lights blue.
@@ -185,17 +186,6 @@ async def set_lights_blue():
         led_brightness_values=[color for x in range(10) for color in [0, 0, 255]]
     )
 
-    # await rvr.led_control.set_multiple_leds_with_enums(
-    #     leds=[
-    #         RvrLedGroups.headlight_left,
-    #         RvrLedGroups.headlight_right
-    #     ],
-    #     colors=[
-    #         Colors.blue,
-    #         Colors.blue
-    #     ]
-    # )
-
 
 async def set_lights_yellow():
     """set_lights_yellow() turns the RVR headlights yellow.
@@ -208,7 +198,6 @@ async def set_lights_yellow():
         led_group=RvrLedGroups.all_lights.value,
         led_brightness_values=[color for x in range(10) for color in [255, 255, 0]]
     )
-
 
 
 async def set_lights_green():
@@ -263,6 +252,8 @@ async def stop_rover():
     Arguments: none
     Returns: nothing
     """
+    if not MOVE_RVR:
+        return
     await rvr.rw_motors(
         left_mode=RawMotorModesEnum.forward.value,
         left_speed=0,
@@ -276,12 +267,14 @@ async def drive_reverse(input_speed, input_heading, input_time):
     the given speed and for the given time.
     
     Arguements:
-    	speed (0 to 255)
-    	heading (0 to 359)
-    	time (seconds)
-    	
+        speed (0 to 255)
+        heading (0 to 359)
+        time (seconds)
+        
     Returns: nothing
     """
+    if not MOVE_RVR:
+        return
     await rvr.drive_control.reset_heading()
     await rvr.drive_control.drive_backward_seconds(
         speed=input_speed,        # Valid speed values are 0-255
@@ -296,12 +289,14 @@ async def drive_forward(input_speed, input_heading, input_time):
     on the given heading, and for the given time.
     
     Arguements:
-    	speed (0 to 255)
-    	heading (0 to 359)
-    	time (seconds)
-    	
+        speed (0 to 255)
+        heading (0 to 359)
+        time (seconds)
+        
     Returns: nothing
     """
+    if not MOVE_RVR:
+        return
     await rvr.drive_control.reset_heading()
     await rvr.drive_control.drive_forward_seconds(
         speed=input_speed,        # Valid speed values are 0-255
@@ -327,15 +322,38 @@ def is_cat(imageFile):
     Arguements: none
     
     Returns:
-    	True if cat is detected
-    	Fals if cat is NOT detected
+        True if cat is detected
+        Fals if cat is NOT detected
     """
     # Look for cat
     # If cat, take better picture. 
-    pass
+    return False
 
 
 def take_picture(outFile):
+    """take_picture() captures a single black and white frame
+    in the dimensions (pixels) required by the TensorFlow
+    training set.
+
+    Arguements:
+        outFile - defines where to store the captured image
+
+    Returns: nothing
+    """
+    # Capture an image
+    with PiCamera() as camera:
+        camera.vflip = True
+        camera.hflip = True
+        camera.contrast = 15
+        camera.sharpness = 35
+        camera.saturation = 20
+        camera.shutter_speed = 0   # auto
+        camera.color_effects = (128,128)     # sets the camera to black and white
+        camera.PiResolution(width=TF_WIDTH, height=TF_HEIGHT)
+        camera.capture(outFile, format="jpeg")
+
+
+def take_picture_hd(outFile):
     """take_picture() captures a single high-resolution image
     from the Raspberry Pi camera.
     
@@ -343,25 +361,36 @@ def take_picture(outFile):
     black and white for TensorFlow.
     
     Arguements:
-    	filepath - defines where to store the captured image
-    	
+        filepath - defines where to store the captured image
+        
     Returns: nothing
     """
     # Capture an image
     with PiCamera() as camera:
         camera.vflip = True
         camera.hflip = True
-        # camera.iso = 400
         camera.contrast = 15
         camera.sharpness = 35
         camera.saturation = 20
-        # sleep(2)
-        # camera.shutter_speed = camera.exposure_speed
         camera.shutter_speed = 0   # auto
-        # camera.exposure_mode = 'off'
         camera.capture(outFile, format="png")
 
 
+##### Perhaps delete this since probably not needed #####
+def convert_pic_to_tf(inFile, outFile, outWidth, outHeight, black_and_white=True):
+    """convert_pic_to_tf process pic to TensorFlow requirements.
+
+    Arguements:
+        inFile - name and path of input file
+        outFile - name and path of output file
+        outWidth - width of output image (pixels)
+        outHeight - height of output image (pixels)
+        black_and_white - boolean indicating change image to B&W
+    """
+    pass
+
+
+##### Perhaps delete this since probably not needed #####
 def take_picture_stream():
     """Take pictures continuously and stream to memory
 
@@ -398,9 +427,9 @@ def point_camera(panval, tiltval):
     experimentally
     
     Arguements:
-    	pan - direction to pan the camera. Positive is left.
-    	tilt - angle to tilt the camera. Negative is up.
-    	
+        pan - direction to pan the camera. Positive is left.
+        tilt - angle to tilt the camera. Negative is up.
+        
     Returns: nothing
     """
     # Point the camera
@@ -408,52 +437,94 @@ def point_camera(panval, tiltval):
     pantilthat.tilt(tiltval)   # negative is "up"
 
 
-def scan_for_cat():
-	"""scan_for_cat() is the framework for scanning the surroundings to
-	look for cat. It uses is_cat() and point_camera() to move the camera from
-	side to side looking for cat.
-	
-	Arguements: none
-	Returns:
-		If cat detected:
-		  range - distance to cat in inches
-		  heading - the direction in which cat was located
-		If cat not detected:
-			-1,-1
-	"""
-    picture_file = "current_view.png"
-    #
+def scan_for_cat(loc_pic_num):
+    """scan_for_cat() is the framework for scanning the surroundings to
+    look for cat. It uses is_cat() and point_camera() to move the camera from
+    side to side looking for cat.
+    
+    Arguements: none
+    Returns:
+        If cat detected:
+          range - distance to cat in inches
+          heading - the direction in which cat was located
+        If cat not detected:
+            -1,-1
+    """
+
+    pic_count = loc_pic_num
+
     # Point the camera in a given direction
     # Remember, pan left is positive, and tilt "up" is negative
-    for azimuth in range(20, -20, -1):
-    	take_picture(picture_file)
-    	# Cat there?
-    	if is_cat(picture_file):
-    		print("Cat!\n")
-    		# get range in inches to target
-    		cat_range = adc_to_range()
-    		# transform azimuth into heading
-    		# return range, heading
+
+    for PanAngle in range(0, -100, -10):
+        pantilthat.pan(PanAngle)
+        picture_file = "cat%0.3d.jpg" % (pic_count)
+        pic_count += 1
+        sleep(1)
+        take_picture(picture_file)
+        # Cat there?
+        if is_cat(picture_file):
+            print("Cat!\n")
+            await flash_lights_green()
+            # Get a good picture of the cat for verification
+            hd_pic_file = "actual_cat%0.3d.jpg" % (pic_count)
+            take_picture_hd(hd_pic_file)
+            # get range in inches to target
+            cat_range = adc_to_range()
+            # PanAngle is heading? ### Check Sphero SDK for heading specification. ###
+            cat_heading = PanAngle
+            # return(cat_range, cat_heading)
+
+    for PanAngle in range(0, 100, 10):
+        pantilthat.pan(PanAngle)
+        picture_file = "cat%0.3d.jpg" % (pic_count)
+        pic_count += 1
+        sleep(1)
+        take_picture(picture_file)
+        # Cat there?
+        if is_cat(picture_file):
+            print("Cat!\n")
+            await flash_lights_green()
+            # Get a good picture of the cat for verification
+            hd_pic_file = "actual_cat%0.3d.jpg" % (pic_count)
+            take_picture_hd(hd_pic_file)
+            # get range in inches to target
+            cat_range = adc_to_range()
+            # PanAngle is heading? ### Check Sphero SDK for heading specification. ###
+            cat_heading = PanAngle
+            # return(cat_range, cat_heading)
+
     return(-1,-1)
 
 
 def scan_for_hazard():
     """scan_for_hazard() is called just before starting off to chase the cat.
-    It uses point_camera() to tilt from zero to "up" in order to find any
+    It uses point_camera() to tilt from 80 to "up" in order to find any
     overhead obstacles that could damage the instruments on the pan/tilt mast.
     
     Arguements: none
     
     Returns:
-    	True - hazard detected
-    	False - no hazard detected, free to move
+        True - hazard detected
+        False - no hazard detected, free to move
     """
-    pass
+    for cam_tilt in range(80,40,5):
+        cur_range = adc_to_range()
+        if 10 > cur_range:
+            print("Hazard detected!")
+            center_camera()
+            return True
+    center_camera()
+    return False
 
 
 ##### Rangefinder Section #####
 
-# NOTE: this uses the MaxBotix LV-EZ0 ultrasonic rangefinder.
+# NOTE: this uses the MaxBotix LV-EZ0 ultrasonic rangefinder. The
+# MaxBotix series have different ranges and "sight" patterns, so
+# check the data sheets for the one you want to use. EZ0 is the
+# narrowest and longest range, so that's why I use it.
+
 # Pin 3 -> ADC
 # Pin 6 -> 3.3v
 # Pin 7 -> GND
@@ -461,10 +532,9 @@ def scan_for_hazard():
 # It also uses an ADS1115 16-bit I2C ADC with programmable gain.
 # VCC -> 3.3v
 
-
 def adc_to_range():
     """adc_to_range provides range in inches from the
-    rangefinder (MaxBotix LV-EZ)
+    rangefinder (MaxBotix LV-EZ0)
 
     Returns:
         range in inches
@@ -472,45 +542,59 @@ def adc_to_range():
     cur_value, cur_volt = read_adc()
 
     # This formula was extracted from several hundred observations
-    # collected with measured distance.
+    # collected with measured distance. Fortunately, the value:range
+    # relationship is linear.
 
     # y = 0.03110x - 7.35300
- 
     cur_range = (0.03110 * cur_value) - 7.35300
-    
     return(cur_range)
 
 
 def read_adc():
-	"""
-	read_adc() simply reads the values from the analog-to-digital
-	converter and returns them. The ADS1115 returns both a "value"
-	and the voltage. In our case, voltage will be most useful.
-	
-	Arguements: none
-	
-	Returns:
-		Value
-		Voltage (need to check units)
-	"""
+    """
+    read_adc() simply reads the values from the analog-to-digital
+    converter and returns them. The ADS1115 returns both a "value"
+    and the voltage. In our case, voltage will be most useful.
+    
+    Arguements: none
+    
+    Returns:
+        Value
+        Voltage (need to check units)
+    """
     # Read the ADC
     curVal = chan.value
     curVolt = chan.voltage
-    print("Value: %d  Voltage: %0.3f\n" % (curVal, curVolt))
     return (curVal, curVolt)
 
+
+def center_camera():
+    "center_camera() surprisingly centers the camera.
+
+    Arguements: none
+    Returns: nothing
+    """"
+
+    # Interesting. The pan/tilt mast is looking down too far at 90,
+    # and the pan is not centered at zero.
+   
+    # Fix it with device-specific values.
+
+    pantilthat.tilt(80)
+    pantilthat.pan(-12)
+
+
 def shutdown_pi():
-	"""shutdown_pi() executes a clean shutdown to avoid damage to flash memory.
-	
-	Arguements: none
-	
-	Returns: nothing
-	"""
-	command = "/usr/bin/sudo /sbin/shutdown -h now"
-	import subprocess.process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-	output = process.communicate()[0]
-	# NOTREACHED
-	return
+    """shutdown_pi() executes a clean shutdown to avoid damage to flash memory.
+    
+    Arguements: none
+    
+    Returns: nothing
+    """
+    subprocess.run(["/usr/bin/sudo","/sbin/shutdonw","-h","now"])
+    # NOTREACHED
+    return
+
 
 ##### Main #####
 
@@ -524,6 +608,13 @@ async def main():
     """
 
     print("System Startup\n")
+    center_camera()
+    pic_count = 1
+    await set_lights_red()
+    sleep(2)
+    await set_lights_yellow()
+    sleep(2)
+    await set_lights_green()
 
     # Class instantiation for persistent RVR data
     RVRdata = RVRpersistence()
@@ -553,13 +644,17 @@ async def main():
         # Check battery state
         battery_percentage = await rvr.get_battery_percentage()
         print('Battery percentage: ', battery_percentage)
-        if 20 >= battery_percentage:
+        if 5 >= battery_percentage:
             # If low or critical
+            print("##### Critically low RVR battery. Shutting down. #####")
             rvr.sleep()
             shutdown_pi()  # Orderly shutdown to save flash integrity
 
         # Scan for cat with camera
-        cat_range, cat_heading = scan_for_cat()
+        cat_range, cat_heading = scan_for_cat(1)
+
+        # pic_count += 1
+        center_camera()
         if cat_range > -1:
             print("Cat detected!\n")
             # Drive towards cat if it's safe
@@ -568,13 +663,15 @@ async def main():
                 # Translate camera direction to heading
                 RVRdata.setHeading(cat_heading)
                 # Translate range to drive time
-                await drive_forward(NORMAL_SPD, RVRdata.getHeading(), 5)
-                await asyncio.sleep(2)
+                if MOVE_RVR:
+                    await drive_forward(NORMAL_SPD, RVRdata.getHeading(), 5)
+                    await asyncio.sleep(2)
             else:
-                awiat stop_rover()
+                await stop_rover()
                 print("Hazard avoidance triggered.\n")
-                new_heading = RVRdata.invertHeading
-                drive_reverse(SLOW_SPD, new_heading, 1)
+                if MOVE_RVR:
+                    new_heading = RVRdata.invertHeading
+                    drive_reverse(SLOW_SPD, new_heading, 1)
         else:
             # No cat.
             print("No cat.\n")  # Just a statement to make it valid Python
